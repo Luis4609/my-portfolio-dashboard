@@ -1,4 +1,4 @@
-interface KpiCardProps {
+export interface KpiCardProps {
   title: string;
   value: string | number;
   change?: string;

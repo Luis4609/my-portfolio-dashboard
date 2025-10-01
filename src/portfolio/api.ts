@@ -1,4 +1,4 @@
-import { Position, FmpQuote } from "/types";
+import type { Position, FmpQuote } from "./types";
 
 const FMP_API_KEY = "YOUR_API_KEY_HERE";
 

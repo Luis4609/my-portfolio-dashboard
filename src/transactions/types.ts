@@ -1,5 +1,5 @@
 // --- Transaction Types ---
-interface Transaction {
+export interface Transaction {
     ticker: string;
     shares: number;
     price: number;

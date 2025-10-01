@@ -1,6 +1,6 @@
 // --- Portfolio Types ---
 
-interface Position {
+export interface Position {
   id: number;
   ticker: string;
   shares: number;
@@ -10,21 +10,21 @@ interface Position {
   marketCap: string;
 }
 
-interface PositionWithPrices extends Position {
+export interface PositionWithPrices extends Position {
   currentPrice: number;
   currentValue: number;
   costBasis: number;
   pl: number;
 }
 
-interface PortfolioTotals {
+export interface PortfolioTotals {
   currentValue: number;
   totalCost: number;
   totalPl: number;
   totalPlPercent: number;
 }
 
-interface FmpQuote {
+export interface FmpQuote {
   symbol: string;
   price: number;
 }
