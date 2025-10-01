@@ -7,7 +7,7 @@ interface ViteTypeOptions {
 }
 
 interface ImportMetaEnv {
-  readonly FMP_API_KEY: string
+  readonly VITE_FMP_API_KEY: string
   // more env variables...
 }
 

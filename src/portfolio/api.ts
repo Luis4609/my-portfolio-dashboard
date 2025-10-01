@@ -1,6 +1,6 @@
 import type { Position, FmpQuote } from "./types";
 
-const FMP_API_KEY = "kWz7RrOVNh3PAv41tsVr4uoNrz0CewAQ";
+const FMP_API_KEY = import.meta.env.VITE_FMP_API_KEY as string;
 
 export const fetchStockPricesAPI = async (
   positions: Position[]

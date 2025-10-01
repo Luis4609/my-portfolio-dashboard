@@ -1,5 +1,4 @@
 import React, { useEffect, useRef } from "react";
-import type { Chart } from "chart.js";
 
 interface PerformanceChartProps {
   portfolio: { date: string; value: number }[];
@@ -10,14 +9,14 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
   sp500,
 }) => {
   const chartRef = useRef<HTMLCanvasElement>(null);
-  const chartInstance = useRef<Chart<"line"> | null>(null);
+  const chartInstance = useRef<Chart | null>(null);
 
   useEffect(() => {
     chartInstance.current?.destroy();
-    if (chartRef.current && window.Chart) {
+    if (chartRef.current && (window as any).Chart) {
       const ctx = chartRef.current.getContext("2d");
       if (ctx) {
-        chartInstance.current = new window.Chart(ctx, {
+        chartInstance.current = new (window as any).Chart(ctx, {
           type: "line",
           data: {
             labels: portfolio.map((d) => d.date),
@@ -52,7 +51,9 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
         });
       }
     }
-    return () => chartInstance.current?.destroy();
+    return () => {
+      chartInstance.current?.destroy();
+    };
   }, [portfolio, sp500]);
 
   return (
