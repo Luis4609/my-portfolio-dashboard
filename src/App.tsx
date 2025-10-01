@@ -13,6 +13,7 @@ import TransactionModal from "./transactions/components/TransactionModal";
 
 import type { Transaction } from "./transactions/types";
 
+import { DcfCalculator } from "./analisys/components/DfcCalculator";
 import type {
   PortfolioTotals,
   Position,
@@ -530,6 +531,7 @@ function App() {
               </table>
             </div>
           </div>
+          <DcfCalculator />
         </div>
       </div>
 
