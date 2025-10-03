@@ -38,7 +38,8 @@ export const getGeminiPortfolioAnalysis = async (
 export const fetchEpsAPI = async (ticker: string): Promise<number | null> => {
   if (!ticker) return null;
 
-  const url = `https://financialmodelingprep.com/api/v3/key-metrics-ttm/${ticker}?apikey=${FMP_API_KEY}`;
+  const url = `https://financialmodelingprep.com/stable/income-statement?symbol=${ticker}&apikey=${FMP_API_KEY}`;
+
   try {
     const response = await fetch(url);
     if (!response.ok)
@@ -51,3 +52,22 @@ export const fetchEpsAPI = async (ticker: string): Promise<number | null> => {
     return null;
   }
 };
+
+
+// Alternative key-metrics-ttm fetching method (commented out) 
+// export const fetchEpsAPI = async (ticker: string): Promise<number | null> => {
+//   if (!ticker) return null;
+
+//   const url = `https://financialmodelingprep.com/api/v3/key-metrics-ttm/${ticker}?apikey=${FMP_API_KEY}`;
+//   try {
+//     const response = await fetch(url);
+//     if (!response.ok)
+//       throw new Error(`Failed to fetch EPS: ${response.status}`);
+//     const data = await response.json();
+//     const eps = data[0]?.epsdilutedTTM;
+//     return typeof eps === "number" ? eps : null;
+//   } catch (error) {
+//     console.error("Error fetching EPS:", error);
+//     return null;
+//   }
+// };

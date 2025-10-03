@@ -28,3 +28,11 @@ export interface FmpQuote {
   symbol: string;
   price: number;
 }
+
+export interface KpiCardProps {
+  title: string;
+  value: string | number;
+  change?: string;
+  icon: React.ReactNode;
+  valueColor?: string;
+}

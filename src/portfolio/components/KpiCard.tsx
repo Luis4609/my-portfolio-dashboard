@@ -1,10 +1,5 @@
-export interface KpiCardProps {
-  title: string;
-  value: string | number;
-  change?: string;
-  icon: React.ReactNode;
-  valueColor?: string;
-}
+import type { KpiCardProps } from "../types/types";
+
 const KpiCard: React.FC<KpiCardProps> = ({
   title,
   value,

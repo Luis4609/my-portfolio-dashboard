@@ -17,7 +17,8 @@ export const DcfCalculator: React.FC = () => {
         setError('');
         setIntrinsicValue(null);
         
-        const eps = await fetchEpsAPI(ticker);
+        const epsArray = await fetchEpsAPI(ticker);
+        const eps = Array.isArray(epsArray) && epsArray.length > 0 ? epsArray[0] : null;
         if (eps === null) {
             setError('No se pudo obtener el EPS. Verifica el ticker.');
             setIsLoading(false);
