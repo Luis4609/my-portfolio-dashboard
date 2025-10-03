@@ -1,4 +1,4 @@
-import type { KpiCardProps } from "../types/types";
+import type { KpiCardProps } from "../types";
 
 const KpiCard: React.FC<KpiCardProps> = ({
   title,
