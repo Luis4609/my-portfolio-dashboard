@@ -22,6 +22,7 @@ import usePortfolio from "./portfolio/hook/usePortfolio";
 import type { Position, PositionWithPrices } from "./portfolio/types";
 
 import { useTransactions } from "./transactions/hook/useTransactions";
+import { fetchHistoricalDataAPI } from "./portfolio/api";
 
 const initialPositions: Position[] = [];
 
@@ -62,6 +63,7 @@ function App() {
     portfolio: any[];
     sp500: any[];
   }>({ portfolio: [], sp500: [] });
+  const [isPerformanceLoading, setIsPerformanceLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = useCallback(
@@ -74,61 +76,31 @@ function App() {
           const data = new Uint8Array(e.target?.result as ArrayBuffer);
           const workbook = window.XLSX.read(data, { type: "array" });
 
-          // Read Positions sheet
-          const positionsSheet = workbook.Sheets["Positions"];
+          const sheetName = workbook.SheetNames[0];
+          const positionsSheet = workbook.Sheets[sheetName];
           if (!positionsSheet)
-            throw new Error("Sheet 'Positions' not found in Excel file.");
+            throw new Error(`Sheet '${sheetName}' not found.`);
+
           const positionsJson = window.XLSX.utils.sheet_to_json(positionsSheet);
           const newPositions: Position[] = positionsJson.map(
-            (row: any, i: number) => ({
-              id: Date.now() + i,
-              ticker: row.Ticker,
-              shares: parseFloat(row.Shares),
-              avgCost: parseFloat(row["Avg Cost"]),
-              category: row.Category,
-              sector: row.Sector,
-              marketCap: row["Market Cap"],
-            })
+            (row: any, i: number) => {
+              const sharesValue = String(row.Shares).replace(",", ".");
+              const avgCostValue = String(row["Avg Cost"])
+                .replace("$", "")
+                .replace(",", ".");
+
+              return {
+                id: Date.now() + i,
+                ticker: row.Ticker,
+                shares: parseFloat(sharesValue),
+                avgCost: parseFloat(avgCostValue),
+                category: row.Category,
+                sector: row.Sector,
+                marketCap: row["Market Cap"],
+              };
+            }
           );
           setPositions(newPositions);
-
-          // Read Performance sheet
-          const performanceSheet = workbook.Sheets["Performance"];
-          if (performanceSheet) {
-            const performanceJson =
-              window.XLSX.utils.sheet_to_json(performanceSheet);
-            // Assuming Excel dates might be numbers, convert them properly
-            const parseDate = (excelDate: any) => {
-              if (typeof excelDate === "number") {
-                return new Date(
-                  Math.round((excelDate - 25569) * 86400 * 1000)
-                ).toLocaleDateString("en-US", {
-                  year: "2-digit",
-                  month: "short",
-                });
-              }
-              return excelDate;
-            };
-            const newPortfolioPerf = performanceJson.map((row: any) => ({
-              date: parseDate(row.Date),
-              value: row.PortfolioValue,
-            }));
-            const newSp500Perf = performanceJson.map((row: any) => ({
-              date: parseDate(row.Date),
-              value: row.SP500Value,
-            }));
-            setPerformanceData({
-              portfolio: newPortfolioPerf,
-              sp500: newSp500Perf,
-            });
-          } else {
-            setPerformanceData({ portfolio: [], sp500: [] });
-            showNotification(
-              "Sheet 'Performance' not found. Chart will be empty.",
-              "error"
-            );
-          }
-
           showNotification("Portfolio uploaded successfully!");
         } catch (error: any) {
           showNotification(
@@ -200,6 +172,78 @@ function App() {
     });
   }, [positionsWithPrices, portfolioTotals.currentValue]);
 
+  useEffect(() => {
+    const calculatePerformance = async () => {
+      if (positions.length === 0) {
+        setPerformanceData({ portfolio: [], sp500: [] });
+        return;
+      }
+
+      setIsPerformanceLoading(true);
+      const tickers = positions.map((p) => p.ticker);
+      const allTickers = [...new Set([...tickers, "SPY"])];
+
+      const historicalData = await fetchHistoricalDataAPI(allTickers);
+
+      const spyHistory = historicalData["SPY"];
+      if (!spyHistory || spyHistory.length === 0) {
+        console.error("Could not fetch SPY data for benchmark.");
+        setIsPerformanceLoading(false);
+        setPerformanceData({ portfolio: [], sp500: [] }); // Clear data on error
+        return;
+      }
+
+      const dateMap = new Map<
+        string,
+        { portfolioValue: number; spyValue: number }
+      >();
+      spyHistory.forEach((d) =>
+        dateMap.set(d.date, { portfolioValue: 0, spyValue: d.close })
+      );
+
+      for (const position of positions) {
+        const stockHistory = historicalData[position.ticker];
+        if (stockHistory) {
+          stockHistory.forEach((dayData) => {
+            if (dateMap.has(dayData.date)) {
+              const existing = dateMap.get(dayData.date)!;
+              existing.portfolioValue += position.shares * dayData.close;
+              dateMap.set(dayData.date, existing);
+            }
+          });
+        }
+      }
+
+      const combinedHistory = Array.from(dateMap.entries())
+        .map(([date, values]) => ({ date, ...values }))
+        .filter((d) => d.portfolioValue > 0);
+
+      const normalize = (data: { date: string; value: number }[]) => {
+        if (data.length < 1) return [];
+        const baseValue = data[0].value;
+        return data.map((d) => ({
+          date: new Date(d.date).toLocaleDateString("en-US", {
+            year: "2-digit",
+            month: "short",
+          }),
+          value: (d.value / baseValue) * 100,
+        }));
+      };
+
+      const portfolioPerf = normalize(
+        combinedHistory.map((d) => ({ date: d.date, value: d.portfolioValue }))
+      );
+      const sp500Perf = normalize(
+        combinedHistory.map((d) => ({ date: d.date, value: d.spyValue }))
+      );
+
+      setPerformanceData({ portfolio: portfolioPerf, sp500: sp500Perf });
+      setIsPerformanceLoading(false);
+    };
+
+    calculatePerformance();
+  }, [positions]);
+
   if (!scriptsLoaded) {
     return (
       <div className="bg-gray-900 text-white min-h-screen flex items-center justify-center">
@@ -262,6 +306,7 @@ function App() {
               <PerformanceChart
                 portfolio={performanceData.portfolio}
                 sp500={performanceData.sp500}
+                isLoading={isPerformanceLoading}
               />
               <PositionsTable
                 positions={positionsWithPrices}

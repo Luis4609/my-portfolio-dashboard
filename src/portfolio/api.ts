@@ -22,3 +22,36 @@ export const fetchStockPricesAPI = async (
     return {};
   }
 };
+
+export const fetchHistoricalDataAPI = async (tickers: string[]): Promise<Record<string, { date: string, close: number }[]>> => {
+    if (FMP_API_KEY === "YOUR_API_KEY_HERE" || tickers.length === 0) {
+        return {};
+    }
+
+    const to = new Date().toISOString().split('T')[0];
+    const from = new Date(new Date().setFullYear(new Date().getFullYear() - 1)).toISOString().split('T')[0];
+    
+    const requests = tickers.map(ticker =>
+        fetch(`https://financialmodelingprep.com/api/v3/historical-price-full/${ticker}?from=${from}&to=${to}&apikey=${FMP_API_KEY}`)
+            .then(res => {
+                if (!res.ok) throw new Error(`Failed for ${ticker}`);
+                return res.json();
+            })
+    );
+
+    const results = await Promise.allSettled(requests);
+    const historicalData: Record<string, { date: string, close: number }[]> = {};
+
+    results.forEach((result, index) => {
+        if (result.status === 'fulfilled' && result.value.symbol && result.value.historical) {
+            historicalData[result.value.symbol] = result.value.historical.map((d: any) => ({
+                date: d.date,
+                close: d.close,
+            })).reverse(); // API returns newest first
+        } else {
+            console.error(`Failed to fetch historical data for ${tickers[index]}:`, result.status === 'rejected' ? result.reason : 'No data');
+        }
+    });
+    
+    return historicalData;
+};
